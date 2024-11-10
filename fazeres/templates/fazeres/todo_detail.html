@@ -1,0 +1,10 @@
+{% extends "fazeres/base.html" %}
+
+{% block content %}
+<h1>Task Detail</h1>
+<p>{{ todo.text }} ({{ todo.get_status_display }})</p>
+<p>Created at: {{ todo.created_at }}</p>
+<a href="{% url 'todo_update' todo.pk %}" class="btn btn-secondary">Edit</a>
+<a href="{% url 'todo_delete' todo.pk %}" class="btn btn-danger">Delete</a>
+<a href="{% url 'todo_list' %}" class="btn btn-primary">Back to list</a>
+{% endblock %}

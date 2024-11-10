@@ -1,0 +1,137 @@
+{% extends "fazeres/base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <form id="todo-form" class="form-inline justify-content-center mb-4">
+      <input type="text" id="task-input" class="form-control mr-2" placeholder="Enter a new task" required />
+      <button type="submit" class="btn btn-primary">Add Task</button>
+    </form>
+    <ul id="todo-list" class="list-group"></ul>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const todoList = document.getElementById('todo-list');
+    const todoForm = document.getElementById('todo-form');
+    const taskInput = document.getElementById('task-input');
+
+    // Fetch and display tasks
+    function fetchTasks() {
+      fetch('/api/todos/')
+        .then(response => response.json())
+        .then(data => {
+          todoList.innerHTML = '';
+          data.forEach(todo => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            li.innerHTML = `
+              <span>${todo.text} (${todo.status === 'P' ? 'Pendente' : 'Completa'})</span>
+              <div>
+                <button class="btn btn-secondary btn-sm mr-2" onclick="editTask(${todo.id}, '${todo.text}', '${todo.status}')">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteTask(${todo.id})">Delete</button>
+                <button class="btn btn-success btn-sm" onclick="toggleStatus(${todo.id}, '${todo.status}')">${todo.status === 'P' ? 'Complete' : 'Reopen'}</button>
+              </div>
+            `;
+            todoList.appendChild(li);
+          });
+        })
+        .catch(error => console.error('Error fetching tasks:', error));
+    }
+
+    // Add a new task
+    todoForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const taskText = taskInput.value.trim();
+
+      if (taskText === '') {
+        alert('Task cannot be empty');
+        return;
+      }
+
+      fetch('/api/todos/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: taskText, status: 'P' }),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          fetchTasks();
+          taskInput.value = '';
+        })
+        .catch(error => console.error('Error adding task:', error));
+    });
+
+    // Edit a task
+    window.editTask = function(id, text, status) {
+      const newTaskText = prompt('Edit task:', text);
+      if (newTaskText === null || newTaskText.trim() === '') {
+        return;
+      }
+
+      fetch(`/api/todos/${id}/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: newTaskText.trim(), status: status }),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          fetchTasks();
+        })
+        .catch(error => console.error('Error editing task:', error));
+    };
+
+    // Delete a task
+    window.deleteTask = function(id) {
+      fetch(`/api/todos/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          fetchTasks();
+        })
+        .catch(error => console.error('Error deleting task:', error));
+    };
+
+    // Toggle task status
+    window.toggleStatus = function(id, currentStatus) {
+      const newStatus = currentStatus === 'P' ? 'C' : 'P';
+
+      fetch(`/api/todos/${id}/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          fetchTasks();
+        })
+        .catch(error => console.error('Error toggling status:', error));
+    };
+
+    // Initial fetch of tasks
+    fetchTasks();
+  });
+</script>
+{% endblock %}
